@@ -64,7 +64,7 @@ run_cron() {
 
   if [ -z "${LE_DEBUG}" ]; then
     crond -b
-    exit 0
+    return 0
   fi
 
   # Patch crontab to execute renewal each minute and show logs

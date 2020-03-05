@@ -2,7 +2,7 @@ FROM nginx:1.17.9-alpine
 EXPOSE 80 443
 ENV LE_DOMAINS='' \
     LE_EMAIL='' \
-    LE_DEBUG=false
+    LE_DEBUG=''
 
 RUN apk add --no-cache acme.sh ca-certificates openssl tini
 

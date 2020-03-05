@@ -21,6 +21,11 @@ exception() {
   exit 1
 }
 
+log() {
+  local text="$@"
+  echo -e "\033[0;36m${text}\033[0m"
+}
+
 install_acme() {
   cd /usr/share/acme.sh
 
@@ -36,18 +41,27 @@ install_acme() {
 
   acme.sh --install ${args} --home /cert/data/acme.sh
 
+  log '#### acme.sh installed. Issuing a certificate...'
+
   nginx -c /cert/verify.conf
   acme.sh --issue --home /cert/data/acme.sh ${args} --webroot /cert/data/www
-  killall -9 nginx
+
+  log '#### Certificate received. Installing...'
+
+  killall -9 nginx || true
 
   mkdir -p /cert/data/issued
   acme.sh --install-cert ${args} --home /cert/data/acme.sh \
     --key-file /cert/data/issued/key.pem  \
     --fullchain-file /cert/data/issued/cert.pem \
     --reloadcmd 'test -e /var/run/nginx.pid && nginx -s reload || true'
+
+  log '#### Certificate installed.'
 }
 
 run_cron() {
+  log '#### Running crond....'
+
   if [ -z "${LE_DEBUG}" ]; then
     crond -b
     exit 0
@@ -60,14 +74,16 @@ run_cron() {
   crond -f -l 0 &
 }
 
-# Run acme.sh install if there is no certificate
 if [ ! -f /cert/data/issued/cert.pem ]; then
+  log '#### Certificate not found. Initializing acme.sh...'
   install_acme
 fi;
 
-# Check whether to update cert on start
-acme.sh --cron --home /cert/data/acme.sh
-
 run_cron
 
+log '#### Checking whether certificate should be renewed....'
+acme.sh --cron --home /cert/data/acme.sh || true
+
+
+log '#### Finally, running nginx....'
 "$@"
